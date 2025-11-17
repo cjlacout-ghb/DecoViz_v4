@@ -1,0 +1,5 @@
+{
+  "name": "v4_DecoViz AI: Asistente de Rediseño de Interiores",
+  "description": "Sube una foto de una habitación y DecoViz AI la analizará y generará tres propuestas de rediseño profesional en diferentes estilos, completas con recomendaciones de mobiliario.",
+  "requestFramePermissions": []
+}

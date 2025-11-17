@@ -1,0 +1,188 @@
+
+import React, { useState, useCallback } from 'react';
+import { AppView, Proposal } from './types';
+import UploadScreen from './components/UploadScreen';
+import LoadingIndicator from './components/LoadingIndicator';
+import ResultsDisplay from './components/ResultsDisplay';
+import RefinementView from './components/RefinementView';
+import { generateInitialProposals, refineProposal, generateNewStyle, extractColorPalette, generateTextContent } from './services/geminiService';
+import { HouseIcon } from './components/icons'; 
+
+const App: React.FC = () => {
+  const [currentView, setCurrentView] = useState<AppView>(AppView.UPLOAD);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [originalImageBase64, setOriginalImageBase64] = useState<string | null>(null);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
+  const [selectedProposalIndex, setSelectedProposalIndex] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isRefining, setIsRefining] = useState(false);
+  // FIX: State to store detected room type
+  const [roomType, setRoomType] = useState<string | null>(null); 
+
+  const handleAnalyze = useCallback(async (file: File, instructions: string) => {
+    setImageFile(file);
+    setCurrentView(AppView.LOADING);
+    setError(null);
+
+    // Read file to base64 for originalImageBase64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setOriginalImageBase64((reader.result as string).split(',')[1]); // Store only the base64 part
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      // FIX: Call generateInitialProposals and capture both proposals and roomType
+      const [generatedProposals, detectedRoomType] = await generateInitialProposals(file, instructions);
+      setProposals(generatedProposals);
+      setRoomType(detectedRoomType); // Set the detected room type
+      setCurrentView(AppView.RESULTS);
+    } catch (err: any) {
+      setError(err.message || 'An unknown error occurred.');
+      setCurrentView(AppView.UPLOAD);
+    }
+  }, []);
+
+  const handleSelectProposal = (proposal: Proposal, index: number) => {
+    setSelectedProposal(proposal);
+    setSelectedProposalIndex(index);
+    setCurrentView(AppView.REFINEMENT);
+    setError(null);
+  };
+
+  const handleRefine = async (instructions: string) => {
+    // FIX: Add roomType check
+    if (!selectedProposal || !roomType) return; 
+    setIsRefining(true);
+    setError(null);
+    try {
+      const refinedImage = await refineProposal(selectedProposal.redesignedImage, instructions);
+
+      // --- New Logic to update colors and text content ---
+      const [updatedColorPalette, updatedTextContent] = await Promise.all([
+        // For refinement, we use the selected proposal's style and the current instructions (which are refinement instructions)
+        extractColorPalette(refinedImage, selectedProposal.style),
+        // FIX: Pass roomType to generateTextContent
+        generateTextContent(refinedImage, selectedProposal.style, roomType, instructions), 
+      ]);
+      // --- End New Logic ---
+
+      const updatedProposal = {
+        ...selectedProposal,
+        redesignedImage: refinedImage,
+        colorPalette: updatedColorPalette, // Update color palette
+        description: updatedTextContent.description, // Update description
+        objectsUsed: updatedTextContent.objectsUsed, // Update objectsUsed
+        furnitureRecommendation: updatedTextContent.furnitureRecommendation, // Update furnitureRecommendation
+      };
+      setSelectedProposal(updatedProposal);
+      // Update the main proposals list as well
+      if (selectedProposalIndex !== null) {
+          const newProposals = [...proposals];
+          newProposals[selectedProposalIndex] = updatedProposal;
+          setProposals(newProposals);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to refine the image or update details.');
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  // FIX: Added roomTypeForNewStyle parameter
+  const handleGenerateNewStyle = async (newStyle: string, roomTypeForNewStyle: string) => {
+    // FIX: Check for roomTypeForNewStyle
+    if (!imageFile || !roomTypeForNewStyle) return; 
+    setIsRefining(true);
+    setError(null);
+    try {
+        // When generating a new style, we don't have new specific instructions for it,
+        // so we can pass an empty string or consider the newStyle as the instruction itself for text content
+        // FIX: Pass roomTypeForNewStyle to generateNewStyle
+        const newProposal = await generateNewStyle(imageFile, newStyle, roomTypeForNewStyle);
+        setSelectedProposal(newProposal);
+         if (selectedProposalIndex !== null) {
+            const newProposals = [...proposals];
+            newProposals[selectedProposalIndex] = newProposal;
+            setProposals(newProposals);
+        }
+    } catch (err: any) {
+        setError(err.message || `Failed to generate style: ${newStyle}`);
+    } finally {
+        setIsRefining(false);
+    }
+  };
+
+
+  const handleBackToResults = () => {
+    setSelectedProposal(null);
+    setSelectedProposalIndex(null);
+    setCurrentView(AppView.RESULTS);
+    setError(null);
+  };
+  
+  const handleReset = () => {
+    setImageFile(null);
+    setOriginalImageBase64(null); // Clear original image on reset
+    setProposals([]);
+    setSelectedProposal(null);
+    setError(null);
+    setRoomType(null); // Clear room type on reset
+    setCurrentView(AppView.UPLOAD);
+  };
+
+  const renderContent = () => {
+    switch (currentView) {
+      case AppView.UPLOAD:
+        return <UploadScreen onAnalyze={handleAnalyze} error={error} />;
+      case AppView.LOADING:
+        return <LoadingIndicator />;
+      case AppView.RESULTS:
+        return <ResultsDisplay proposals={proposals} onSelect={handleSelectProposal} onReset={handleReset} />;
+      case AppView.REFINEMENT:
+        return selectedProposal ? (
+          <RefinementView 
+            proposal={selectedProposal} 
+            onBack={handleBackToResults} 
+            onRefine={handleRefine}
+            onGenerateNewStyle={handleGenerateNewStyle}
+            isRefining={isRefining}
+            refinementError={error}
+            originalImageBase64={originalImageBase64}
+            roomType={roomType} // Pass roomType to RefinementView
+          />
+        ) : null;
+      default:
+        return <UploadScreen onAnalyze={handleAnalyze} error={error} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F4] text-[#333]">
+      <header className="py-4 px-6 md:px-8 bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <HouseIcon className="w-8 h-8 text-[#D0BFFF]" /> 
+                <h1 className="text-2xl font-bold text-gray-800">DecoViz AI</h1>
+            </div>
+            {currentView !== AppView.UPLOAD && (
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 bg-[#A05EEA] text-white rounded-lg font-semibold hover:bg-[#8A4CE0] transition-colors"
+              >
+                Empezar de Nuevo
+              </button>
+            )}
+        </div>
+      </header>
+      <main className="p-4 md:p-8">
+        <div className="max-w-7xl mx-auto">
+          {renderContent()}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default App;
