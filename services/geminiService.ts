@@ -28,6 +28,24 @@ const base64ToGenerativePart = (base64: string, mimeType: string = 'image/jpeg')
   };
 };
 
+// Helper function to robustly parse JSON from model's text response
+const parseJsonResponse = (responseText: string, context: string): any => {
+    let jsonString = responseText.trim();
+    // Attempt to remove leading/trailing code block markers
+    // This regex handles ````json` block or just ```` block.
+    const codeBlockMatch = jsonString.match(/^```(?:json)?\n([\s\S]*?)\n```$/);
+    if (codeBlockMatch && codeBlockMatch[1]) {
+        jsonString = codeBlockMatch[1].trim();
+    }
+
+    try {
+        return JSON.parse(jsonString);
+    } catch (error) {
+        console.error(`Error parsing JSON from Gemini for ${context}:`, responseText, error);
+        throw new Error(`La respuesta del modelo para ${context} no era un JSON válido. Por favor, inténtalo de nuevo.`);
+    }
+};
+
 const styleInstructions: Record<DecorStyle, string> = {
   "Moderno": `
     **STYLE GUIDELINES (Moderno):**
@@ -125,7 +143,7 @@ export const generateTextContent = async (redesignedImageBase64: string, style: 
   const imagePart = base64ToGenerativePart(redesignedImageBase64);
   const instructionPrompt = userInstructions ? `Presta especial atención a la solicitud del usuario: "${userInstructions}".` : '';
 
-  const prompt = `Eres un experto diseñador de interiores y redactor de contenidos para una app de diseño en español, dirigida a un público latinoamericano. Analiza la imagen rediseñada del ${roomType} proporcionado y, para el estilo '${style}', genera lo siguiente:
+  const prompt = `Eres un experto diseñador de interiores y redactor de contenidos para una app de diseño en español, dirigida a un público latinoamericano. Analiza la imagen rediseñada del ${roomType} proporcionado en un estilo '${style}' y, para el estilo '${style}', genera lo siguiente:
 1.  **description**: Una descripción concisa y atractiva (máximo 50 palabras) del estilo tal como se aplica en esta imagen, destacando sus características clave para un ${roomType}.
 2.  **objectsUsed**: Una lista de 3 a 5 objetos de mobiliario y/o decoración clave **visibles en la imagen** que se integrarían en este diseño para un ${roomType}, en formato de texto plano con un elemento por línea. No incluyas números ni viñetas. Ej: "Sofá modular gris\\nMesa de centro de madera\\nLámpara de pie de arco\\nAlfombra geométrica".
 3.  **furnitureRecommendation**: Una lista de 3 a 5 sugerencias **adicionales y concretas** de objetos de mobiliario y decoración que complementarían este estilo para un ${roomType}, en formato de texto plano con un elemento por línea. No incluyas números ni viñetas. Estas deben ser sugerencias específicas de objetos. Ej: "Lámpara colgante de metal negro\\nAlfombra de yute con patrón geométrico blanco\\nJuego de mesas nido de madera de abedul\\nSillón individual con tapizado de lino gris".
@@ -138,18 +156,13 @@ Devuelve la respuesta como un objeto JSON con las claves "description", "objects
       config: { responseMimeType: 'application/json' },
   });
   
-  try {
-    const cleanedText = response.text.replace(/^```json|```$/g, '').trim();
-    const parsedContent = JSON.parse(cleanedText);
-    return {
-      description: parsedContent.description.trim(),
-      objectsUsed: parsedContent.objectsUsed.trim(),
-      furnitureRecommendation: parsedContent.furnitureRecommendation.trim(),
-    };
-  } catch (error) {
-    console.error("Error parsing JSON from Gemini:", response.text, error);
-    throw new Error(`No se pudo interpretar la descripción o los objetos del estilo '${style}'. La respuesta del modelo no era un JSON válido.`);
-  }
+  const parsedContent = parseJsonResponse(response.text, `descripción y objetos para estilo ${style}`);
+  
+  return {
+    description: String(parsedContent.description || '').trim(),
+    objectsUsed: String(parsedContent.objectsUsed || '').trim(),
+    furnitureRecommendation: String(parsedContent.furnitureRecommendation || '').trim(),
+  };
 };
 
 export const extractColorPalette = async (redesignedImageBase64: string, style: string): Promise<string[]> => {
@@ -168,17 +181,12 @@ Ejemplo de respuesta:
     config: { responseMimeType: 'application/json' },
   });
 
-  try {
-    const cleanedText = response.text.replace(/^```json|```$/g, '').trim();
-    const parsedContent = JSON.parse(cleanedText);
-    if (Array.isArray(parsedContent.colors) && parsedContent.colors.every((c: any) => typeof c === 'string' && c.match(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/))) {
-      return parsedContent.colors;
-    }
-    throw new Error('Invalid color palette format.');
-  } catch (error) {
-    console.error("Error parsing JSON for color palette:", response.text, error);
-    throw new Error(`No se pudo extraer la paleta de colores para el estilo '${style}'.`);
+  const parsedContent = parseJsonResponse(response.text, `paleta de colores para estilo ${style}`);
+  
+  if (Array.isArray(parsedContent.colors) && parsedContent.colors.every((c: any) => typeof c === 'string' && c.match(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/))) {
+    return parsedContent.colors;
   }
+  throw new Error(`Formato de paleta de colores inválido para el estilo '${style}'.`);
 };
 
 
@@ -197,7 +205,7 @@ const analyzeImage = async (imagePart: any): Promise<{ roomType: string; isValid
         contents: { parts: [imagePart, {text: prompt}] },
         config: { responseMimeType: 'application/json' }
     });
-    return JSON.parse(response.text);
+    return parseJsonResponse(response.text, "análisis de imagen");
 };
 
 // FIX: Modified generateInitialProposals to return both the proposals and the detected roomType
