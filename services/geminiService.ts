@@ -1,8 +1,15 @@
 import { GoogleGenAI, GenerateContentResponse, Modality, Type } from "@google/genai";
 import { DecorStyle, DECOR_STYLES, Proposal } from '../types';
 
-// Assume API_KEY is set in the environment
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// Helper function to get a new GoogleGenAI instance right before an API call
+const getGenAIInstance = () => {
+  // The guidelines state process.env.API_KEY is pre-configured and accessible.
+  // This approach ensures it's accessed dynamically at the point of use.
+  if (typeof process === 'undefined' || !process.env || !process.env.API_KEY) {
+    throw new Error('API_KEY not found. Ensure process.env.API_KEY is configured and available.');
+  }
+  return new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+};
 
 const fileToGenerativePart = async (file: File) => {
   const base64EncodedDataPromise = new Promise<string>((resolve) => {
@@ -51,6 +58,7 @@ const styleInstructions: Record<DecorStyle, string> = {
 
 // FIX: Updated `style` parameter type to `string` to support custom styles.
 const generateRedesignedImage = async (originalImagePart: any, style: string, roomType: string, userInstructions: string = ''): Promise<string> => {
+  const ai = getGenAIInstance();
   // FIX: Provide a default guideline if the style is not one of the predefined DecorStyles.
   const styleGuideline = styleInstructions[style as DecorStyle] || `
     **STYLE GUIDELINES (${style}):**
@@ -91,6 +99,7 @@ Genera la imagen rediseñada basándote en estas instrucciones.`;
 
 // FIX: Updated `style` parameter type to `string` to support custom styles.
 const generateMoodBoard = async (style: string): Promise<string> => {
+    const ai = getGenAIInstance();
     const prompt = `Crea un 'mood board' fotorrealista para un estilo de diseño de interiores '${style}'. El mood board debe ser una composición que muestre muestras de telas, muestras de materiales, una paleta de colores y pequeños ejemplos de muebles y decoración icónicos de ese estilo. Es crucial que no haya absolutamente NINGÚN TEXTO en la imagen generada.`;
     
     const response = await ai.models.generateImages({
@@ -112,6 +121,7 @@ const generateMoodBoard = async (style: string): Promise<string> => {
 // MODIFIED: generateTextContent now takes the redesigned image part and roomType
 // FIX: Updated `style` parameter type to `string` to support custom styles.
 export const generateTextContent = async (redesignedImageBase64: string, style: string, roomType: string, userInstructions: string = ''): Promise<{ description: string; objectsUsed: string; furnitureRecommendation: string }> => {
+  const ai = getGenAIInstance();
   const imagePart = base64ToGenerativePart(redesignedImageBase64);
   const instructionPrompt = userInstructions ? `Presta especial atención a la solicitud del usuario: "${userInstructions}".` : '';
 
@@ -143,6 +153,7 @@ Devuelve la respuesta como un objeto JSON con las claves "description", "objects
 };
 
 export const extractColorPalette = async (redesignedImageBase64: string, style: string): Promise<string[]> => {
+  const ai = getGenAIInstance();
   const imagePart = base64ToGenerativePart(redesignedImageBase64);
   const prompt = `Eres un experto en diseño de interiores. Analiza esta imagen rediseñada en estilo '${style}' y extrae una paleta de 4 a 6 colores dominantes en formato hexadecimal (ej. #RRGGBB). Estos colores deben reflejar la esencia y los tonos principales de la imagen.
 
@@ -172,6 +183,7 @@ Ejemplo de respuesta:
 
 
 const analyzeImage = async (imagePart: any): Promise<{ roomType: string; isValid: boolean; lowQuality: boolean }> => {
+    const ai = getGenAIInstance();
     const prompt = `Analiza la imagen proporcionada. Determina si es una foto de un espacio interior de una habitación (como una sala de estar, dormitorio, cocina, etc.).
     También evalúa la calidad de la imagen (si es demasiado oscura, borrosa o pixelada para un análisis de diseño).
 
@@ -227,6 +239,7 @@ export const generateInitialProposals = async (imageFile: File, userInstructions
 };
 
 export const refineProposal = async (baseImage: string, instructions: string): Promise<string> => {
+    const ai = getGenAIInstance();
     const imagePart = base64ToGenerativePart(baseImage);
     const prompt = `Eres un experto editor de imágenes de interiores. El usuario quiere modificar esta imagen de diseño.
 Su instrucción es: "${instructions}".

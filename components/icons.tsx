@@ -37,12 +37,3 @@ export const HouseIcon = ({ className }: { className?: string }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12m-4.5 9V12.75a2.25 2.25 0 0 0-2.25-2.25H15a2.25 2.25 0 0 0-2.25 2.25V21m-4.5 0V12.75a2.25 2.25 0 0 0-2.25-2.25H9a2.25 2.25 0 0 0-2.25 2.25V21" />
   </svg>
 );
-
-// FIX: Corrected the HeaderLogo component by removing the incorrect XML content
-// and ensuring the `src` attribute only contains the base64 image data.
-export const HeaderLogo = () => (
-  <img 
-    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAACvklEQVR4nO2Zv24UQRHHfw5I9Ak4Q1kQdY0UvDBCxISFhESKiGj4BwT8kCghE/QJkI+wEhIfIJFqNRYaXEQDQRQYEQh4LgEJCJIEQj34FvY543d3b7v7230gD5DddnZ2tmt22p3u2ZkE9n/f55vV6e/Z2dnZ7u7uRkNDQ89FhYUXJklyeXl5a9fX14+kEgn0u6nxeLy8vr7+r729vXs1NTX57+np6W8ymczW0tLir6urq9+2t7e/Sj+f+91u95Xw488H+/0+8/n8Xq/Xa7t+f39/g/n8/lX/fr/v7d3d3X+yv7//P/z6+roFAoGAn8/n/71e7/s/Pz+/f3x8fH3W1tbu1dXVF0qlUv6n/X4/Pz8/P/Hl5eXv3N3d/ZzX6/X+zcnJyS+rqqqqn3V1dfX5/Pz8R+l/T6fT/S+Wl5e/tLS0tLzX6/X+y8jI+D9hYGAA8vPz8z8/Pz9/ycnJCSqVSoVut9t5ycnJf0qlUqHdbvd1UFCQO2FhYX7k5OTkXygUCpXdbvf5uLm5+f9LS0tLL+Pj4/NXV1fXP+vr62/j4+PjS0NDQ1NTU/OXLl1a7t+/f/8qfX19/QMDAwM/Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+
-"
-  />
-);
