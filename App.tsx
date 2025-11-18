@@ -6,7 +6,7 @@ import LoadingIndicator from './components/LoadingIndicator';
 import ResultsDisplay from './components/ResultsDisplay';
 import RefinementView from './components/RefinementView';
 import { generateInitialProposals, refineProposal, generateNewStyle, extractColorPalette, generateTextContent } from './services/geminiService';
-import { HouseIcon } from './components/icons'; // Import HouseIcon
+import { HouseIcon, XMarkIcon } from './components/icons'; // Import HouseIcon and XMarkIcon
 
 
 const App: React.FC = () => {
@@ -27,7 +27,7 @@ const App: React.FC = () => {
   const handleAnalyze = useCallback(async (file: File, instructions: string) => {
     setImageFile(file);
     setCurrentView(AppView.LOADING);
-    setError(null);
+    setError(null); // Clear any previous error
 
     // Read file to base64 for originalImageBase64
     const reader = new FileReader();
@@ -53,14 +53,14 @@ const App: React.FC = () => {
     setSelectedProposalIndex(index);
     setProposalHistory([]); // Reset history for a new selection
     setCurrentView(AppView.REFINEMENT);
-    setError(null);
+    setError(null); // Clear any previous error
   };
 
   const handleRefine = async (instructions: string) => {
     // FIX: Add roomType check
     if (!selectedProposal || !roomType) return; 
     setIsRefining(true);
-    setError(null);
+    setError(null); // Clear any previous error
     try {
       const refinedImage = await refineProposal(selectedProposal.redesignedImage, instructions);
 
@@ -105,7 +105,7 @@ const App: React.FC = () => {
     // FIX: Check for roomTypeForNewStyle
     if (!imageFile || !roomTypeForNewStyle) return; 
     setIsRefining(true);
-    setError(null);
+    setError(null); // Clear any previous error
     try {
         // When generating a new style, we don't have new specific instructions for it,
         // so we can pass an empty string or consider the newStyle as the instruction itself for text content
@@ -153,7 +153,7 @@ const App: React.FC = () => {
     setSelectedProposalIndex(null);
     setProposalHistory([]); // Clear history when going back to results
     setCurrentView(AppView.RESULTS);
-    setError(null);
+    setError(null); // Clear any previous error
   };
   
   const handleReset = () => {
@@ -161,7 +161,7 @@ const App: React.FC = () => {
     setOriginalImageBase64(null); // Clear original image on reset
     setProposals([]);
     setSelectedProposal(null);
-    setError(null);
+    setError(null); // Clear any previous error
     setRoomType(null); // Clear room type on reset
     setProposalHistory([]); // Clear history on full reset
     setCurrentView(AppView.UPLOAD);
@@ -170,7 +170,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (currentView) {
       case AppView.UPLOAD:
-        return <UploadScreen onAnalyze={handleAnalyze} error={error} />;
+        return <UploadScreen onAnalyze={handleAnalyze} setError={setError} />;
       case AppView.LOADING:
         return <LoadingIndicator />;
       case AppView.RESULTS:
@@ -183,7 +183,7 @@ const App: React.FC = () => {
             onRefine={handleRefine}
             onGenerateNewStyle={handleGenerateNewStyle}
             isRefining={isRefining}
-            refinementError={error}
+            // refinementError={error} // Removed, now handled by global error display
             originalImageBase64={originalImageBase64}
             roomType={roomType} // Pass roomType to RefinementView
             onUndo={handleUndo} // Pass undo handler
@@ -191,7 +191,7 @@ const App: React.FC = () => {
           />
         ) : null;
       default:
-        return <UploadScreen onAnalyze={handleAnalyze} error={error} />;
+        return <UploadScreen onAnalyze={handleAnalyze} setError={setError} />;
     }
   };
 
@@ -215,6 +215,21 @@ const App: React.FC = () => {
       </header>
       <main className="p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
+          {error && (
+            <div
+              className="bg-red-500 text-white p-4 rounded-lg mb-6 flex items-center justify-between shadow-md"
+              role="alert"
+            >
+              <p className="font-medium">Error: {error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="ml-4 p-1 rounded-full hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-red-300"
+                aria-label="Dismiss error"
+              >
+                <XMarkIcon className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          )}
           {renderContent()}
         </div>
       </main>

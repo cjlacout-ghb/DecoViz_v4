@@ -1,15 +1,13 @@
 
-
-
 import React, { useState, useCallback } from 'react';
 import { UploadIcon, XMarkIcon } from './icons';
 
 interface UploadScreenProps {
   onAnalyze: (file: File, instructions: string) => void;
-  error: string | null;
+  setError: (message: string | null) => void; // New prop for setting global error
 }
 
-const UploadScreen: React.FC<UploadScreenProps> = ({ onAnalyze, error }) => {
+const UploadScreen: React.FC<UploadScreenProps> = ({ onAnalyze, setError }) => {
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [instructions, setInstructions] = useState('');
@@ -18,14 +16,14 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onAnalyze, error }) => {
   const handleFileChange = (file: File | null) => {
     if (file && file.type.startsWith('image/')) {
       setImage(file);
+      setError(null); // Clear any previous error when a valid file is selected
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     } else {
-      // Basic validation feedback
-      alert("Por favor, seleccioná un archivo de imagen válido (JPG, PNG, WebP).");
+      setError("Por favor, seleccioná un archivo de imagen válido (JPG, PNG, WebP)."); // Use setError
     }
   };
 
@@ -60,15 +58,17 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onAnalyze, error }) => {
 
   const handleSubmit = () => {
     if (image) {
+      setError(null); // Clear previous errors before analysis
       onAnalyze(image, instructions);
     } else {
-      alert("Por favor, subí una imagen antes de analizar.");
+      setError("Por favor, subí una imagen antes de analizar."); // Use setError
     }
   };
   
   const handleRemoveImage = () => {
     setImage(null);
     setPreview(null);
+    setError(null); // Clear any errors related to the removed image
   };
 
 
@@ -81,12 +81,7 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onAnalyze, error }) => {
         </p>
       </div>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6 w-full" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
-        </div>
-      )}
+      {/* Removed local error display, now handled by global error in App.tsx */}
 
       <div className="w-full bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
         <div

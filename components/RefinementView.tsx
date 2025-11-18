@@ -1,7 +1,6 @@
 
-
 import React, { useState } from 'react';
-import { Proposal, DECOR_STYLES } from '../types';
+import { Proposal } from '../types';
 import { ArrowLeftIcon, DownloadIcon, SparklesIcon, UndoIcon } from './icons';
 
 interface RefinementViewProps {
@@ -10,7 +9,7 @@ interface RefinementViewProps {
   onRefine: (instructions: string) => Promise<void>;
   onGenerateNewStyle: (newStyle: string, roomTypeForNewStyle: string) => Promise<void>;
   isRefining: boolean;
-  refinementError: string | null;
+  // refinementError: string | null; // Removed, now handled by global error display
   originalImageBase64: string | null;
   roomType: string | null;
   onUndo: () => void; // New prop for undo action
@@ -26,7 +25,7 @@ const downloadImage = (base64Image: string, fileName: string) => {
     document.body.removeChild(link);
 };
 
-const RefinementView: React.FC<RefinementViewProps> = ({ proposal, onBack, onRefine, onGenerateNewStyle, isRefining, refinementError, originalImageBase64, roomType, onUndo, canUndo }) => {
+const RefinementView: React.FC<RefinementViewProps> = ({ proposal, onBack, onRefine, onGenerateNewStyle, isRefining, originalImageBase64, roomType, onUndo, canUndo }) => {
   const [instructions, setInstructions] = useState('');
   const [newStylePrompt, setNewStylePrompt] = useState('');
 
@@ -130,7 +129,7 @@ const RefinementView: React.FC<RefinementViewProps> = ({ proposal, onBack, onRef
                     </button>
                 </div>
               </div>
-              {refinementError && <p className="text-red-600 text-sm mt-2">{refinementError}</p>}
+              {/* Removed refinementError display, now handled by global error in App.tsx */}
           </div>
         </div>
 
