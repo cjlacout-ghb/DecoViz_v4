@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback } from 'react';
 import { AppView, Proposal } from './types';
 import UploadScreen from './components/UploadScreen';
@@ -7,7 +6,8 @@ import LoadingIndicator from './components/LoadingIndicator';
 import ResultsDisplay from './components/ResultsDisplay';
 import RefinementView from './components/RefinementView';
 import { generateInitialProposals, refineProposal, generateNewStyle, extractColorPalette, generateTextContent } from './services/geminiService';
-import { HouseIcon } from './components/icons'; 
+import { HouseIcon } from './components/icons'; // Import HouseIcon
+
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.UPLOAD);
@@ -200,7 +200,7 @@ const App: React.FC = () => {
       <header className="py-4 px-6 md:px-8 bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-gray-200">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-                <HouseIcon className="w-8 h-8 text-[#D0BFFF]" /> 
+                <HouseIcon className="w-8 h-8 text-[#C5A3FF]" /> {/* Changed color to a lighter purple */}
                 <h1 className="text-2xl font-bold text-gray-800">DecoViz AI</h1>
             </div>
             {currentView !== AppView.UPLOAD && (

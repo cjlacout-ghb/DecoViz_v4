@@ -104,7 +104,7 @@ const RefinementView: React.FC<RefinementViewProps> = ({ proposal, onBack, onRef
                       type="text"
                       value={instructions}
                       onChange={(e) => setInstructions(e.target.value)}
-                      placeholder="Ej: 'Cambia el sofá a color rojo carmín'"
+                      placeholder="Ej: 'Cambia el color del sofá a rojo carmín'"
                       className="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D0BFFF]"
                       disabled={isRefining}
                   />
@@ -115,26 +115,13 @@ const RefinementView: React.FC<RefinementViewProps> = ({ proposal, onBack, onRef
 
               <div className="mt-5 pt-5 border-t border-gray-200">
                 <p className="text-sm text-gray-600 mb-3">O probá con un estilo completamente nuevo.</p>
-                {/* Predefined style buttons */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {DECOR_STYLES.map(style => (
-                    <button
-                      key={style}
-                      onClick={() => handleNewStyleClick(style)}
-                      disabled={isRefining}
-                      className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-[#D0BFFF] hover:border-[#D0BFFF] hover:text-indigo-900 transition-colors disabled:bg-gray-100 disabled:text-gray-400"
-                    >
-                      {style}
-                    </button>
-                  ))}
-                </div>
                 {/* Custom style input */}
                 <div className="flex gap-2">
                     <input
                         type="text"
                         value={newStylePrompt}
                         onChange={(e) => setNewStylePrompt(e.target.value)}
-                        placeholder="Ej: 'Estilo Art Decó'"
+                        placeholder="Ej: 'Haz una nueva propuesta en Estilo Art Decó'"
                         className="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D0BFFF]"
                         disabled={isRefining}
                     />
