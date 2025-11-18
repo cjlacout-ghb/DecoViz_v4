@@ -175,11 +175,16 @@ const RefinementView: React.FC<RefinementViewProps> = ({ proposal, onBack, onRef
             </div>
 
             {/* Section for Furniture Recommendation */}
-            <div className="bg-gray-100 p-4 rounded-xl border flex-grow"> {/* Changed bg-gray-50 to bg-gray-100 for subtle difference */}
+            <div className="bg-gray-100 p-4 rounded-xl border flex-grow">
                 <h3 className="font-bold text-lg text-gray-800">Sugerencias de Mobiliario y Decoración</h3>
-                <p className="mt-2 text-gray-700 whitespace-pre-wrap text-sm"> {/* Added whitespace-pre-wrap */}
-                    {proposal.furnitureRecommendation}
-                </p>
+                <ul className="mt-2 text-gray-700 text-sm list-disc pl-5 space-y-1"> {/* Added list-disc and pl-5 for bullet points */}
+                    {proposal.furnitureRecommendation.split('\n').filter(item => item.trim() !== '').map((item, index) => (
+                        <li key={index}>{item.trim()}</li>
+                    ))}
+                </ul>
+                {proposal.furnitureRecommendation.trim() === '' && (
+                    <p className="mt-2 text-gray-500 text-sm">No hay sugerencias de mobiliario disponibles.</p>
+                )}
             </div>
         </div>
       </div>
