@@ -1,6 +1,8 @@
+
+
 import React, { useState } from 'react';
 import { Proposal, DECOR_STYLES } from '../types';
-import { ArrowLeftIcon, DownloadIcon, SparklesIcon } from './icons';
+import { ArrowLeftIcon, DownloadIcon, SparklesIcon, UndoIcon } from './icons';
 
 interface RefinementViewProps {
   proposal: Proposal;
@@ -11,6 +13,8 @@ interface RefinementViewProps {
   refinementError: string | null;
   originalImageBase64: string | null;
   roomType: string | null;
+  onUndo: () => void; // New prop for undo action
+  canUndo: boolean; // New prop to indicate if undo is possible
 }
 
 const downloadImage = (base64Image: string, fileName: string) => {
@@ -22,7 +26,7 @@ const downloadImage = (base64Image: string, fileName: string) => {
     document.body.removeChild(link);
 };
 
-const RefinementView: React.FC<RefinementViewProps> = ({ proposal, onBack, onRefine, onGenerateNewStyle, isRefining, refinementError, originalImageBase64, roomType }) => {
+const RefinementView: React.FC<RefinementViewProps> = ({ proposal, onBack, onRefine, onGenerateNewStyle, isRefining, refinementError, originalImageBase64, roomType, onUndo, canUndo }) => {
   const [instructions, setInstructions] = useState('');
   const [newStylePrompt, setNewStylePrompt] = useState('');
 
@@ -46,16 +50,24 @@ const RefinementView: React.FC<RefinementViewProps> = ({ proposal, onBack, onRef
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 sm:p-6 lg:p-8">
         <div className="flex justify-between items-center mb-6">
-            <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold">
-                <ArrowLeftIcon className="w-5 h-5" />
-                Volver a las Propuestas
-            </button>
+            <div className="flex items-center gap-4"> {/* Group back and undo buttons */}
+                <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold">
+                    <ArrowLeftIcon className="w-5 h-5" />
+                    Volver a las Propuestas
+                </button>
+                {canUndo && (
+                    <button onClick={onUndo} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold" disabled={isRefining}>
+                        <UndoIcon className="w-5 h-5" />
+                        Deshacer
+                    </button>
+                )}
+            </div>
             {originalImageBase64 && (
                 <div
-                    className="relative w-16 h-16 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-gray-300 shadow-sm"
+                    className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-gray-300 shadow-sm flex items-center justify-center" // Centered for smaller images
                     title="Imagen original"
                 >
-                    <img src={`data:image/jpeg;base64,${originalImageBase64}`} alt="Original" className="w-full h-full object-cover" />
+                    <img src={`data:image/jpeg;base64,${originalImageBase64}`} alt="Original" className="max-w-full max-h-full object-contain" />
                     <span className="sr-only">Imagen original</span>
                 </div>
             )}

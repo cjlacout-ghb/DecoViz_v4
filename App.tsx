@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { AppView, Proposal } from './types';
 import UploadScreen from './components/UploadScreen';
@@ -19,6 +20,9 @@ const App: React.FC = () => {
   const [isRefining, setIsRefining] = useState(false);
   // FIX: State to store detected room type
   const [roomType, setRoomType] = useState<string | null>(null); 
+  // State to manage history of selected proposal for undo functionality
+  const [proposalHistory, setProposalHistory] = useState<Proposal[]>([]);
+
 
   const handleAnalyze = useCallback(async (file: File, instructions: string) => {
     setImageFile(file);
@@ -47,6 +51,7 @@ const App: React.FC = () => {
   const handleSelectProposal = (proposal: Proposal, index: number) => {
     setSelectedProposal(proposal);
     setSelectedProposalIndex(index);
+    setProposalHistory([]); // Reset history for a new selection
     setCurrentView(AppView.REFINEMENT);
     setError(null);
   };
@@ -76,13 +81,18 @@ const App: React.FC = () => {
         objectsUsed: updatedTextContent.objectsUsed, // Update objectsUsed
         furnitureRecommendation: updatedTextContent.furnitureRecommendation, // Update furnitureRecommendation
       };
+
+      // Before updating selectedProposal, save the current state to history
+      setProposalHistory(prev => [...prev, selectedProposal]);
       setSelectedProposal(updatedProposal);
+
       // Update the main proposals list as well
-      if (selectedProposalIndex !== null) {
-          const newProposals = [...proposals];
-          newProposals[selectedProposalIndex] = updatedProposal;
-          setProposals(newProposals);
-      }
+      setProposals(prevProposals => {
+        if (selectedProposalIndex === null) return prevProposals;
+        const newProposals = [...prevProposals];
+        newProposals[selectedProposalIndex] = updatedProposal;
+        return newProposals;
+      });
     } catch (err: any) {
       setError(err.message || 'Failed to refine the image or update details.');
     } finally {
@@ -101,12 +111,20 @@ const App: React.FC = () => {
         // so we can pass an empty string or consider the newStyle as the instruction itself for text content
         // FIX: Pass roomTypeForNewStyle to generateNewStyle
         const newProposal = await generateNewStyle(imageFile, newStyle, roomTypeForNewStyle);
-        setSelectedProposal(newProposal);
-         if (selectedProposalIndex !== null) {
-            const newProposals = [...proposals];
-            newProposals[selectedProposalIndex] = newProposal;
-            setProposals(newProposals);
+
+        // Before updating selectedProposal, save the current state to history
+        if (selectedProposal) {
+          setProposalHistory(prev => [...prev, selectedProposal]);
         }
+        setSelectedProposal(newProposal);
+
+        // Update the main proposals list as well
+        setProposals(prevProposals => {
+          if (selectedProposalIndex === null) return prevProposals;
+          const updatedProposals = [...prevProposals];
+          updatedProposals[selectedProposalIndex] = newProposal;
+          return updatedProposals;
+        });
     } catch (err: any) {
         setError(err.message || `Failed to generate style: ${newStyle}`);
     } finally {
@@ -114,10 +132,26 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUndo = () => {
+    if (proposalHistory.length > 0) {
+      const previousProposal = proposalHistory[proposalHistory.length - 1];
+      setProposalHistory(prev => prev.slice(0, prev.length - 1)); // Remove the last item from history
+      setSelectedProposal(previousProposal); // Revert to the previous proposal
+
+      // Also update the main proposals list
+      setProposals(prevProposals => {
+        if (selectedProposalIndex === null) return prevProposals;
+        const newProposals = [...prevProposals];
+        newProposals[selectedProposalIndex] = previousProposal;
+        return newProposals;
+      });
+    }
+  };
 
   const handleBackToResults = () => {
     setSelectedProposal(null);
     setSelectedProposalIndex(null);
+    setProposalHistory([]); // Clear history when going back to results
     setCurrentView(AppView.RESULTS);
     setError(null);
   };
@@ -129,6 +163,7 @@ const App: React.FC = () => {
     setSelectedProposal(null);
     setError(null);
     setRoomType(null); // Clear room type on reset
+    setProposalHistory([]); // Clear history on full reset
     setCurrentView(AppView.UPLOAD);
   };
 
@@ -151,6 +186,8 @@ const App: React.FC = () => {
             refinementError={error}
             originalImageBase64={originalImageBase64}
             roomType={roomType} // Pass roomType to RefinementView
+            onUndo={handleUndo} // Pass undo handler
+            canUndo={proposalHistory.length > 0} // Pass undo capability
           />
         ) : null;
       default:
